@@ -7,7 +7,8 @@ const met_routerapi = require("./routes/routes");
 const { logErrors, errorHandler, boomErrorHandler } = require("./middlewares/errorHandler.js");
 
 const app = express();
-const port = 3010;
+// const port = 3010;
+const port = process.env.PORT || 3010;
 
 app.use(express.json());
 
@@ -15,7 +16,7 @@ const whitelist = ["http://localhost:8080", "https://myapp.co"];
 
 const cors_options = {
 origin: (origin, callback) => {
-if(whitelist.includes(origin)){
+if(whitelist.includes(origin) || !origin){
 callback(null, true);
 }else{
 callback(new Error("Origen no permitido"));
