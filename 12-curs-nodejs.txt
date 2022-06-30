@@ -1,0 +1,378 @@
+>>npm init -y
+
+__
+
+**.editorconfig
+
+**index.js
+
+console.log("App");
+
+**.gitignore
+
+**package.json
+
+..
+"scripts":{
+"dev":"nodemon index.js",
+"start":"node index.js",
+"lint":"eslint"
+}
+
+>>npm i nodemon eslint eslint-config-prettier eslint-plugin-prettier prettier -D
+
+__3
+
+>>npm i express
+
+**index.js
+
+const express = require("express);
+
+const app = express();
+const port = 3000;
+
+app.get("/", (req, res) => {
+res.send("Servidor de express");
+});
+
+app.listen(port, () => {
+console.log("Escuchando en el puerto " + port);
+});
+
+__7
+
+app.get("/desde-limite", (req, res) => {
+const { limit, offset } = req.query;
+if(limit && offset){
+res.json({
+desde:parseInt(offset), hasta:parseInt(limit)
+});
+}else{
+res.send("No hay parametros");
+}
+});
+
+__13
+
+**productsService.js
+
+const faker = require("faker");
+
+class ProductService{
+constructor(){
+this.products = [];
+}
+
+generate(){
+//generar los productos
+}
+
+create(){}
+
+find(){
+return this.products;
+}
+
+findOne(id_producto){
+return this.products.find(item => item.id === id);
+}
+
+update(){}
+
+delete(){}
+}
+
+module.exports = ProductsService;
+
+**productsRouter.js
+
+const productsService = require("../services/productsService");
+
+const service = new ProductsService();
+
+..
+const products = service.find();
+res.json(products);
+
+..
+const product = service.findOne(id);
+res.json(product);
+
+__14
+
+**productsService.js
+
+create(data){
+const newProduct = {
+id:faker.datatype.uuid(),
+...data
+};
+
+this.products.push(newProduct);
+return newProduct;
+}
+
+update(id, changes){
+const index = this.products.findIndex(item => item.id === id);
+if(index === -1){
+throw new Error("Product not found");
+}
+const product = this.products[index];
+this.products[index] = {
+...product,
+...changes
+};
+return this.products[index];
+}
+
+delete(id){
+const index = this.products.findIndex(item => item.id === id);
+if(index === -1){
+throw new Error("Product not found");
+}
+this.products.splice(index, 1);
+return { id };
+}
+
+**productsRoutes.js
+
+..
+const newProduct = service.create(body);
+res.status(201).json(newProduct);
+
+..
+const product = service.update(id, body);
+res.json(product);
+
+..
+const resp = service.delete(id);
+res.json(resp);
+
+__15
+
+**productsService.js
+
+..
+find(){
+return new Promise((resolve, reject) => {
+setTimeout(() => {
+resolve(this.products);
+}, 5000);
+});
+}
+
+**productsRoutes.js
+
+..
+}catch(error){
+res.status(404).json({
+message: error
+});
+}
+
+__1B
+
+**middlewares/errorHandler.js
+
+function logErrors(error, req, res, next){
+console.log("logErrors");
+console.log(error);
+next(error);
+}
+
+function errorHandler(error, req, res, next){
+console.log("errorHandler");
+res.status(500).json({
+message:error.message,
+stack:error.stack
+});
+}
+
+module.exports = { logErrors, errorHandler };
+
+**index.js
+
+..
+const { logErrors, errorHandler } = require("./middlewares/errorHandler.js");
+
+..
+app.use(logErrors);
+app.use(errorHandler);
+
+__18
+
+>>npm i @hapi/boom
+
+**productsService.js
+
+const boom = require("@hapi/boom");
+
+..
+update
+if(index === -1){
+throw boom.notFound("product not found");
+}
+
+delete
+throw boom.notFound("product not found");
+
+findOne
+if(!product){
+throw boom.notFound("product not found");
+}
+return product;
+
+**errorHandler.js
+
+function boomErrorHandler(error, req, res, next){
+console.log("boomErrorHandler");
+if(error.isBoom){
+const { output } = error;
+res.status(output.status).json(output.payload);
+}
+next(error);
+}
+
+**productsRouter.js
+
+patch
+next(error);
+
+**service
+
+generate
+isBlock:faker.datatype.boolean()
+
+findOne
+if(product.isBlock){
+throw boom.conflict("product is blocked");
+}
+
+__19
+
+>>npm install joi
+
+**schemas/productsSchema.js
+
+const Joi = require("joi");
+
+const id = Joi.string().uuid();
+
+const name = Joi.string().alphanum().min(3).max(15);
+
+const price = Joi.number().integer().min(10);
+
+const createProductSchema = Joi.object({
+name:name.required(),
+price:price.required()
+});
+
+const updateProductSchema = Joi.object({
+name:name,
+price:price
+});
+
+const getProductSchema = Joi.object({
+id:id.required()
+});
+
+module.exports = { createProductSchema, updateProductSchema, getProductSchema };
+
+**middlewares/validatorHandler.js
+
+function validatorHandler(schema, property){
+return (req, res, next) => {
+const data = req[property];
+const { error } = schema.validate(data);
+if(error){
+next(boom.badRequest(error));
+}
+next();
+}
+}
+
+module.exports = { validatorHandle };
+
+__20
+
+**productsRouter.js
+
+const validatorHandler
+
+const createProductSchema, updateProductSchema, getProductSchema
+
+get("/:id",
+validatorHandler(getProductSchema, "params"),
+async(req, res, next) => {..});
+
+post
+validatorHandler
+createProductSchema, "body"
+
+patch
+validatorHandler
+getProductSchema, "params"
+updateProductSchema, "body"
+
+**validatorHandler.js
+
+schema.validate(data, { abortEarly:false });
+
+__22
+
+**prueb_nodejs.html
+
+script
+(async () => {
+const response = await fetch("http://localhost:3000/api/products");
+const data = await response.json();
+console.log(data);
+}) ();
+
+__23
+
+**index.js
+
+..
+const whitelist = ["http://localhost:80", "https://myapp.co"];
+
+const options = {
+origin: (origin, callback) => {
+if(whitelist.includes(origin)){
+callback(null, true);
+}else{
+callback(new Error("Origen no permitido");
+}
+}
+};
+
+__2A
+
+>>heroku create
+
+**package.json
+
+..
+"engines":{
+"node":"14.x"
+}
+
+>>heroku local web
+
+**index.js
+
+const port = process.env.PORT || 3000;
+
+..
+if(whitelist.includes(origin) || !origin){..}
+
+**Procfile
+
+web: npm run start
+
+>>git add .
+>>git commit -m "deploy"
+>>git checkout main
+>>git merge 19-step
+>>git push heroku main
